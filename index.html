@@ -1,12 +1,291 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pour toi bébé</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pour toi bébé</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 40px 20px;
+      background: #f7f7f7;
+    }
+
+    .box {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+    }
+
+    input {
+      width: 90%;
+      padding: 12px;
+      margin: 10px 0;
+      font-size: 16px;
+    }
+
+    button {
+      padding: 12px 20px;
+      margin: 8px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    #image {
+      display: none;
+      max-width: 100%;
+      margin-top: 25px;
+      border-radius: 12px;
+    }
+
+    #locationButtons {
+      display: none;
+    }
+
+    #message {
+      margin-top: 20px;
+    }
+  </style>
 </head>
+
 <body>
-  <h1>Pour toi bébé</h1>
-  <p>Cette page est en préparation.</p>
+
+  <div class="box">
+    <h1>Pour toi bébé</h1>
+
+    <div id="emailSection">
+      <p>Entre ton adresse e-mail pour continuer.</p>
+
+      <input
+        type="email"
+        id="email"
+        placeholder="Ton adresse e-mail"
+        required
+      >
+
+      <br>
+
+      <button id="emailButton">
+        Recevoir le lien
+      </button>
+    </div>
+
+    <div id="locationButtons">
+      <p>
+        Tu peux maintenant choisir de partager ta localisation.
+        C’est facultatif.
+      </p>
+
+      <button id="allowLocation">
+        Autoriser
+      </button>
+
+      <button id="refuseLocation">
+        Refuser
+      </button>
+    </div>
+
+    <p id="message"></p>
+
+    <div id="protectedContent" style="display:none;">
+      <h2>Accès confirmé</h2>
+
+      <p>Ton accès est maintenant déverrouillé.</p>
+
+      <div id="imagePlaceholder">
+        L’image sera ajoutée ici.
+      </div>
+
+      <!-- L'image sera ajoutée ici plus tard -->
+      <!--
+      <img id="image" src="ton-image.jpg" alt="Image">
+      -->
+    </div>
+  </div>
+
+
+  <script type="module">
+
+    import { initializeApp }
+      from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+
+    import {
+      getAuth,
+      sendSignInLinkToEmail,
+      isSignInWithEmailLink,
+      signInWithEmailLink
+    } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBdhh9FeXyjqDBH_q0CMP-d4xrILZXH_O8",
+      authDomain: "pour-toi-bb.firebaseapp.com",
+      projectId: "pour-toi-bb",
+      storageBucket: "pour-toi-bb.firebasestorage.app",
+      messagingSenderId: "922098615015",
+      appId: "1:922098615015:web:f022dce2b3bb971b071842"
+    };
+
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+
+    const emailInput = document.getElementById("email");
+    const emailButton = document.getElementById("emailButton");
+    const emailSection = document.getElementById("emailSection");
+    const locationButtons = document.getElementById("locationButtons");
+    const protectedContent = document.getElementById("protectedContent");
+    const message = document.getElementById("message");
+
+
+    emailButton.addEventListener("click", async () => {
+
+      const email = emailInput.value.trim();
+
+      if (!email) {
+        message.textContent = "Entre ton adresse e-mail.";
+        return;
+      }
+
+      const actionCodeSettings = {
+        url: window.location.origin + window.location.pathname,
+        handleCodeInApp: true
+      };
+
+      try {
+
+        await sendSignInLinkToEmail(
+          auth,
+          email,
+          actionCodeSettings
+        );
+
+        localStorage.setItem("emailForSignIn", email);
+
+        message.textContent =
+          "Un lien de vérification vient d’être envoyé à ton adresse e-mail.";
+
+      } catch (error) {
+
+        console.error(error);
+
+        message.textContent =
+          "Impossible d’envoyer le lien. Vérifie la configuration Firebase.";
+      }
+    });
+
+
+    async function checkEmailLink() {
+
+      if (!isSignInWithEmailLink(auth, window.location.href)) {
+        return;
+      }
+
+      let email = localStorage.getItem("emailForSignIn");
+
+      if (!email) {
+
+        email = window.prompt(
+          "Confirme ton adresse e-mail :"
+        );
+
+        if (!email) {
+          return;
+        }
+      }
+
+      try {
+
+        await signInWithEmailLink(
+          auth,
+          email,
+          window.location.href
+        );
+
+        localStorage.removeItem("emailForSignIn");
+
+        emailSection.style.display = "none";
+
+        protectedContent.style.display = "block";
+
+        locationButtons.style.display = "block";
+
+        message.textContent =
+          "E-mail vérifié avec succès.";
+
+      } catch (error) {
+
+        console.error(error);
+
+        message.textContent =
+          "Le lien de vérification n’est pas valide ou a déjà été utilisé.";
+      }
+    }
+
+
+    document
+      .getElementById("allowLocation")
+      .addEventListener("click", () => {
+
+        if (!navigator.geolocation) {
+
+          message.textContent =
+            "La localisation n’est pas disponible sur cet appareil.";
+
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+
+          (position) => {
+
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+
+            message.textContent =
+              "Localisation autorisée. Merci.";
+
+            console.log(
+              "Latitude :",
+              latitude,
+              "Longitude :",
+              longitude
+            );
+
+            locationButtons.style.display = "none";
+          },
+
+          () => {
+
+            message.textContent =
+              "La localisation n’a pas été autorisée.";
+
+          }
+        );
+      });
+
+
+    document
+      .getElementById("refuseLocation")
+      .addEventListener("click", () => {
+
+        locationButtons.style.display = "none";
+
+        message.textContent =
+          "D’accord. La localisation n’est pas nécessaire pour voir le contenu.";
+      });
+
+
+    checkEmailLink();
+
+  </script>
+
 </body>
 </html>
