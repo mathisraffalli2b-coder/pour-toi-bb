@@ -4,51 +4,45 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pour toi bébé</title>
-
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
       padding: 40px 20px;
-      background: #f7f7f7;
+      background: #fff;
     }
 
-    .box {
-      max-width: 500px;
-      margin: auto;
-      background: white;
-      padding: 30px;
-      border-radius: 15px;
+    h1 {
+      margin-bottom: 30px;
     }
 
     input {
       width: 90%;
+      max-width: 350px;
       padding: 12px;
-      margin: 10px 0;
       font-size: 16px;
+      margin-bottom: 15px;
     }
 
     button {
       padding: 12px 20px;
-      margin: 8px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
       font-size: 16px;
+      cursor: pointer;
+      margin: 5px;
     }
 
-    #image {
-      display: none;
-      max-width: 100%;
-      margin-top: 25px;
-      border-radius: 12px;
-    }
-
-    #locationButtons {
+    #contenu,
+    #localisation {
       display: none;
     }
 
     #message {
+      margin-top: 20px;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
       margin-top: 20px;
     }
   </style>
@@ -56,62 +50,41 @@
 
 <body>
 
-  <div class="box">
-    <h1>Pour toi bébé</h1>
+  <h1>Pour toi bébé</h1>
 
-    <div id="emailSection">
-      <p>Entre ton adresse e-mail pour continuer.</p>
+  <div id="connexion">
+    <p>Entre ton adresse mail pour continuer</p>
 
-      <input
-        type="email"
-        id="email"
-        placeholder="Ton adresse e-mail"
-        required
-      >
+    <input
+      type="email"
+      id="email"
+      placeholder="Ton adresse mail"
+      required
+    >
 
-      <br>
+    <br>
 
-      <button id="emailButton">
-        Recevoir le lien
-      </button>
-    </div>
-
-    <div id="locationButtons">
-      <p>
-        Tu peux maintenant choisir de partager ta localisation.
-        C’est facultatif.
-      </p>
-
-      <button id="allowLocation">
-        Autoriser
-      </button>
-
-      <button id="refuseLocation">
-        Refuser
-      </button>
-    </div>
+    <button id="envoyer">Recevoir le lien</button>
 
     <p id="message"></p>
+  </div>
 
-    <div id="protectedContent" style="display:none;">
-      <h2>Accès confirmé</h2>
+  <div id="contenu">
+    <h2>Bienvenue</h2>
 
-      <p>Ton accès est maintenant déverrouillé.</p>
+    <p>Tu peux maintenant choisir de partager ta localisation, c'est facultatif.</p>
 
-      <div id="imagePlaceholder">
-        L’image sera ajoutée ici.
-      </div>
+    <div id="localisation">
+      <button id="autoriser">Autoriser</button>
+      <button id="refuser">Refuser</button>
+    </div>
 
-      <!-- L'image sera ajoutée ici plus tard -->
-      <!--
-      <img id="image" src="ton-image.jpg" alt="Image">
-      -->
+    <div id="image">
+      <p>Ton image apparaîtra ici.</p>
     </div>
   </div>
 
-
   <script type="module">
-
     import { initializeApp }
       from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 
@@ -122,7 +95,6 @@
       signInWithEmailLink
     } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 
-
     const firebaseConfig = {
       apiKey: "AIzaSyBdhh9FeXyjqDBH_q0CMP-d4xrILZXH_O8",
       authDomain: "pour-toi-bb.firebaseapp.com",
@@ -132,159 +104,100 @@
       appId: "1:922098615015:web:f022dce2b3bb971b071842"
     };
 
-
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-
     const emailInput = document.getElementById("email");
-    const emailButton = document.getElementById("emailButton");
-    const emailSection = document.getElementById("emailSection");
-    const locationButtons = document.getElementById("locationButtons");
-    const protectedContent = document.getElementById("protectedContent");
+    const envoyer = document.getElementById("envoyer");
     const message = document.getElementById("message");
 
+    const connexion = document.getElementById("connexion");
+    const contenu = document.getElementById("contenu");
+    const localisation = document.getElementById("localisation");
 
-    emailButton.addEventListener("click", async () => {
+    const autoriser = document.getElementById("autoriser");
+    const refuser = document.getElementById("refuser");
 
+    const actionCodeSettings = {
+      url: window.location.href,
+      handleCodeInApp: true
+    };
+
+    envoyer.addEventListener("click", async () => {
       const email = emailInput.value.trim();
 
       if (!email) {
-        message.textContent = "Entre ton adresse e-mail.";
+        message.textContent = "Entre ton adresse mail.";
         return;
       }
 
-      const actionCodeSettings = {
-        url: window.location.origin + window.location.pathname,
-        handleCodeInApp: true
-      };
-
       try {
-
-        await sendSignInLinkToEmail(
-          auth,
-          email,
-          actionCodeSettings
-        );
+        await sendSignInLinkToEmail(auth, email, actionCodeSettings);
 
         localStorage.setItem("emailForSignIn", email);
 
         message.textContent =
-          "Un lien de vérification vient d’être envoyé à ton adresse e-mail.";
-
+          "Le lien de connexion a été envoyé. Vérifie ta boîte mail.";
       } catch (error) {
-
         console.error(error);
-
         message.textContent =
-          "Impossible d’envoyer le lien. Vérifie la configuration Firebase.";
+          "Une erreur est survenue. Vérifie l'adresse mail.";
       }
     });
 
+    if (isSignInWithEmailLink(auth, window.location.href)) {
+      const email = localStorage.getItem("emailForSignIn");
 
-    async function checkEmailLink() {
+      if (email) {
+        try {
+          await signInWithEmailLink(
+            auth,
+            email,
+            window.location.href
+          );
 
-      if (!isSignInWithEmailLink(auth, window.location.href)) {
-        return;
-      }
+          localStorage.removeItem("emailForSignIn");
 
-      let email = localStorage.getItem("emailForSignIn");
-
-      if (!email) {
-
-        email = window.prompt(
-          "Confirme ton adresse e-mail :"
-        );
-
-        if (!email) {
-          return;
+          connexion.style.display = "none";
+          contenu.style.display = "block";
+          localisation.style.display = "block";
+        } catch (error) {
+          console.error(error);
+          message.textContent =
+            "Le lien n'est plus valide. Demande un nouveau lien.";
         }
-      }
-
-      try {
-
-        await signInWithEmailLink(
-          auth,
-          email,
-          window.location.href
-        );
-
-        localStorage.removeItem("emailForSignIn");
-
-        emailSection.style.display = "none";
-
-        protectedContent.style.display = "block";
-
-        locationButtons.style.display = "block";
-
-        message.textContent =
-          "E-mail vérifié avec succès.";
-
-      } catch (error) {
-
-        console.error(error);
-
-        message.textContent =
-          "Le lien de vérification n’est pas valide ou a déjà été utilisé.";
       }
     }
 
+    autoriser.addEventListener("click", () => {
+      if (!navigator.geolocation) {
+        localisation.innerHTML =
+          "<p>La localisation n'est pas disponible sur cet appareil.</p>";
+        return;
+      }
 
-    document
-      .getElementById("allowLocation")
-      .addEventListener("click", () => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          console.log(
+            "Localisation autorisée :",
+            position.coords.latitude,
+            position.coords.longitude
+          );
 
-        if (!navigator.geolocation) {
-
-          message.textContent =
-            "La localisation n’est pas disponible sur cet appareil.";
-
-          return;
+          localisation.innerHTML =
+            "<p>Merci, ta localisation a été autorisée.</p>";
+        },
+        () => {
+          localisation.innerHTML =
+            "<p>La localisation n'a pas été autorisée.</p>";
         }
+      );
+    });
 
-        navigator.geolocation.getCurrentPosition(
-
-          (position) => {
-
-            const latitude = position.coords.latitude;
-            const longitude = position.coords.longitude;
-
-            message.textContent =
-              "Localisation autorisée. Merci.";
-
-            console.log(
-              "Latitude :",
-              latitude,
-              "Longitude :",
-              longitude
-            );
-
-            locationButtons.style.display = "none";
-          },
-
-          () => {
-
-            message.textContent =
-              "La localisation n’a pas été autorisée.";
-
-          }
-        );
-      });
-
-
-    document
-      .getElementById("refuseLocation")
-      .addEventListener("click", () => {
-
-        locationButtons.style.display = "none";
-
-        message.textContent =
-          "D’accord. La localisation n’est pas nécessaire pour voir le contenu.";
-      });
-
-
-    checkEmailLink();
-
+    refuser.addEventListener("click", () => {
+      localisation.innerHTML =
+        "<p>La localisation est facultative.</p>";
+    });
   </script>
 
 </body>
