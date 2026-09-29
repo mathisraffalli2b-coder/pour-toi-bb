@@ -13,33 +13,27 @@
     body {
       margin: 0;
       min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-family: Arial, sans-serif;
       background: #fff7f9;
       color: #333;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
     }
 
-    .boite {
+    .box {
       width: 100%;
       max-width: 500px;
+      padding: 30px 22px;
       background: white;
       border-radius: 20px;
-      padding: 30px 22px;
       text-align: center;
       box-shadow: 0 5px 25px rgba(0,0,0,0.08);
     }
 
     h1 {
       margin-top: 0;
-      font-size: 30px;
-    }
-
-    p {
-      font-size: 17px;
-      line-height: 1.5;
     }
 
     input {
@@ -57,55 +51,57 @@
       margin-top: 15px;
       border: 0;
       border-radius: 10px;
-      font-size: 16px;
-      cursor: pointer;
       background: #e889a5;
       color: white;
+      font-size: 16px;
+      cursor: pointer;
     }
 
     button:disabled {
       opacity: 0.6;
-      cursor: wait;
     }
 
     .message {
       margin-top: 15px;
-      font-weight: bold;
-    }
-
-    .erreur {
-      color: #c62828;
+      line-height: 1.5;
       word-break: break-word;
     }
 
-    #zoneApresConnexion {
+    .error {
+      color: #c62828;
+    }
+
+    .success {
+      color: #2e7d32;
+    }
+
+    #welcome {
       display: none;
     }
 
-    #imageProtegee {
-      display: none;
-      width: 100%;
-      max-width: 450px;
-      margin-top: 20px;
-      border-radius: 15px;
-    }
-
-    .boutons-localisation {
+    #locationButtons {
       display: flex;
       gap: 10px;
     }
 
-    .boutons-localisation button {
+    #locationButtons button {
       flex: 1;
+    }
+
+    #protectedImage {
+      display: none;
+      width: 100%;
+      margin-top: 20px;
+      border-radius: 15px;
     }
   </style>
 </head>
 
 <body>
 
-  <div class="boite">
+  <div class="box">
 
-    <div id="zoneConnexion">
+    <div id="login">
 
       <h1>Pour toi bébé</h1>
 
@@ -120,7 +116,7 @@
         autocomplete="email"
       >
 
-      <button id="envoyer">
+      <button id="sendButton">
         Recevoir le lien
       </button>
 
@@ -129,7 +125,7 @@
     </div>
 
 
-    <div id="zoneApresConnexion">
+    <div id="welcome">
 
       <h1>Bienvenue</h1>
 
@@ -138,24 +134,24 @@
         C'est facultatif.
       </p>
 
-      <div class="boutons-localisation">
+      <div id="locationButtons">
 
-        <button id="autoriser">
+        <button id="allowLocation">
           Autoriser
         </button>
 
-        <button id="refuser">
+        <button id="denyLocation">
           Refuser
         </button>
 
       </div>
 
-      <p id="messageLocalisation" class="message"></p>
+      <div id="locationMessage" class="message"></div>
 
       <img
-        id="imageProtegee"
+        id="protectedImage"
         src=""
-        alt="Image"
+        alt=""
       >
 
     </div>
@@ -167,7 +163,12 @@
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-auth-compat.js"></script>
 
+
   <script>
+
+    /* =========================
+       FIREBASE
+    ========================= */
 
     const firebaseConfig = {
       apiKey: "AIzaSyBdhh9FeXyjqDBH_q0CMP-d4xrILZXH_O8",
@@ -178,202 +179,305 @@
       appId: "1:922098615015:web:f022dce2b3bb971b071842"
     };
 
+
+    const message = document.getElementById("message");
+
+
+    /*
+      Si Firebase ne se charge pas du tout,
+      on affiche immédiatement le problème.
+    */
+
+    if (
+      typeof firebase === "undefined" ||
+      !firebase.apps
+    ) {
+
+      message.className = "message error";
+
+      message.textContent =
+        "Firebase ne s'est pas chargé. Recharge la page.";
+
+      throw new Error("Firebase SDK non chargé.");
+
+    }
+
+
     firebase.initializeApp(firebaseConfig);
 
     const auth = firebase.auth();
 
+
+    /* =========================
+       URL DU SITE
+    ========================= */
 
     const siteUrl =
       "https://mathisraffalli2b-coder.github.io/pour-toi-bb/";
 
 
     const actionCodeSettings = {
+
       url: siteUrl,
+
       handleCodeInApp: true
+
     };
 
 
-    const zoneConnexion =
-      document.getElementById("zoneConnexion");
+    /* =========================
+       ELEMENTS
+    ========================= */
 
-    const zoneApresConnexion =
-      document.getElementById("zoneApresConnexion");
+    const login =
+      document.getElementById("login");
+
+    const welcome =
+      document.getElementById("welcome");
 
     const emailInput =
       document.getElementById("email");
 
-    const envoyer =
-      document.getElementById("envoyer");
+    const sendButton =
+      document.getElementById("sendButton");
 
-    const message =
-      document.getElementById("message");
+    const allowLocation =
+      document.getElementById("allowLocation");
 
-    const autoriser =
-      document.getElementById("autoriser");
+    const denyLocation =
+      document.getElementById("denyLocation");
 
-    const refuser =
-      document.getElementById("refuser");
+    const locationMessage =
+      document.getElementById("locationMessage");
 
-    const messageLocalisation =
-      document.getElementById("messageLocalisation");
-
-    const imageProtegee =
-      document.getElementById("imageProtegee");
+    const protectedImage =
+      document.getElementById("protectedImage");
 
 
-    function afficherErreur(texte) {
-      message.className = "message erreur";
-      message.textContent = texte;
-    }
+    /* =========================
+       ENVOI DU LIEN
+    ========================= */
 
+    sendButton.addEventListener(
+      "click",
+      function () {
 
-    envoyer.addEventListener("click", async function () {
+        const email =
+          emailInput.value.trim();
 
-      const email = emailInput.value.trim();
-
-      message.className = "message";
-      message.textContent = "";
-
-      if (!email) {
-        message.textContent =
-          "Entre ton adresse e-mail.";
-        return;
-      }
-
-      envoyer.disabled = true;
-      envoyer.textContent = "Envoi...";
-
-      try {
-
-        await auth.sendSignInLinkToEmail(
-          email,
-          actionCodeSettings
-        );
-
-        localStorage.setItem(
-          "emailForSignIn",
-          email
-        );
-
-        message.className = "message";
-
-        message.textContent =
-          "Le lien a été envoyé. Vérifie ta boîte mail.";
-
-      } catch (error) {
-
-        console.error(error);
-
-        afficherErreur(
-          "Erreur Firebase : " +
-          error.code +
-          " — " +
-          error.message
-        );
-
-      } finally {
-
-        envoyer.disabled = false;
-        envoyer.textContent =
-          "Recevoir le lien";
-
-      }
-
-    });
-
-
-    async function traiterLienConnexion() {
-
-      if (!auth.isSignInWithEmailLink(window.location.href)) {
-        return;
-      }
-
-      let email =
-        localStorage.getItem("emailForSignIn");
-
-      if (!email) {
-
-        email = window.prompt(
-          "Entre l'adresse e-mail à laquelle tu as reçu le lien :"
-        );
-
-      }
-
-      if (!email) {
-        return;
-      }
-
-      try {
-
-        await auth.signInWithEmailLink(
-          email,
-          window.location.href
-        );
-
-        localStorage.removeItem(
-          "emailForSignIn"
-        );
-
-        afficherPageApresConnexion();
-
-      } catch (error) {
-
-        console.error(error);
-
-        zoneConnexion.style.display =
-          "block";
 
         message.className =
-          "message erreur";
+          "message";
 
         message.textContent =
-          "Impossible de confirmer le lien : " +
-          error.code +
-          " — " +
-          error.message;
+          "";
+
+
+        if (!email) {
+
+          message.textContent =
+            "Entre ton adresse e-mail.";
+
+          return;
+
+        }
+
+
+        sendButton.disabled = true;
+
+        sendButton.textContent =
+          "Envoi en cours...";
+
+
+        auth.sendSignInLinkToEmail(
+          email,
+          actionCodeSettings
+        )
+
+        .then(function () {
+
+          /*
+            Firebase a accepté l'envoi.
+          */
+
+          localStorage.setItem(
+            "emailForSignIn",
+            email
+          );
+
+
+          message.className =
+            "message success";
+
+          message.textContent =
+            "Le lien a été envoyé. Vérifie ta boîte mail.";
+
+        })
+
+        .catch(function (error) {
+
+          console.error(
+            "Firebase:",
+            error
+          );
+
+
+          message.className =
+            "message error";
+
+          message.textContent =
+            "Erreur Firebase : " +
+            error.code +
+            " — " +
+            error.message;
+
+        })
+
+        .finally(function () {
+
+          sendButton.disabled =
+            false;
+
+          sendButton.textContent =
+            "Recevoir le lien";
+
+        });
 
       }
+    );
 
-    }
 
+    /* =========================
+       AFFICHER LA PAGE PRIVÉE
+    ========================= */
 
-    function afficherPageApresConnexion() {
+    function showWelcome() {
 
-      zoneConnexion.style.display =
+      login.style.display =
         "none";
 
-      zoneApresConnexion.style.display =
+      welcome.style.display =
         "block";
 
     }
 
 
-    auth.onAuthStateChanged(function(user) {
+    /* =========================
+       TRAITER LE LIEN REÇU
+    ========================= */
 
-      if (user) {
-        afficherPageApresConnexion();
+    if (
+      auth.isSignInWithEmailLink(
+        window.location.href
+      )
+    ) {
+
+      let email =
+        localStorage.getItem(
+          "emailForSignIn"
+        );
+
+
+      if (!email) {
+
+        email =
+          window.prompt(
+            "Entre l'adresse e-mail utilisée pour recevoir le lien :"
+          );
+
       }
 
-    });
+
+      if (email) {
+
+        auth.signInWithEmailLink(
+          email,
+          window.location.href
+        )
+
+        .then(function () {
+
+          localStorage.removeItem(
+            "emailForSignIn"
+          );
+
+          showWelcome();
+
+        })
+
+        .catch(function (error) {
+
+          login.style.display =
+            "block";
+
+          message.className =
+            "message error";
+
+          message.textContent =
+            "Impossible de confirmer le lien : " +
+            error.code +
+            " — " +
+            error.message;
+
+        });
+
+      }
+
+    }
 
 
-    autoriser.addEventListener(
+    /* =========================
+       UTILISATEUR DÉJÀ CONNECTÉ
+    ========================= */
+
+    auth.onAuthStateChanged(
+      function (user) {
+
+        if (user) {
+
+          showWelcome();
+
+        }
+
+      }
+    );
+
+
+    /* =========================
+       AUTORISER LA LOCALISATION
+    ========================= */
+
+    allowLocation.addEventListener(
       "click",
-      function() {
+      function () {
+
+        locationMessage.className =
+          "message";
+
+        locationMessage.textContent =
+          "Demande de localisation...";
+
 
         if (!navigator.geolocation) {
 
-          messageLocalisation.textContent =
+          locationMessage.textContent =
             "La localisation n'est pas disponible.";
 
-          afficherImage();
+          showImage();
 
           return;
+
         }
+
 
         navigator.geolocation.getCurrentPosition(
 
-          function(position) {
+          function (position) {
+
+            /*
+              La localisation n'est utilisée
+              qu'après l'autorisation du visiteur.
+            */
 
             console.log(
               "Localisation autorisée :",
@@ -381,19 +485,21 @@
               position.coords.longitude
             );
 
-            messageLocalisation.textContent =
+
+            locationMessage.textContent =
               "Merci. Ta localisation a été autorisée.";
 
-            afficherImage();
+            showImage();
 
           },
 
-          function() {
 
-            messageLocalisation.textContent =
+          function () {
+
+            locationMessage.textContent =
               "La localisation n'a pas été autorisée.";
 
-            afficherImage();
+            showImage();
 
           }
 
@@ -403,33 +509,43 @@
     );
 
 
-    refuser.addEventListener(
+    /* =========================
+       REFUSER LA LOCALISATION
+    ========================= */
+
+    denyLocation.addEventListener(
       "click",
-      function() {
+      function () {
 
-        messageLocalisation.textContent =
-          "D'accord, aucune localisation n'est utilisée.";
+        locationMessage.className =
+          "message";
 
-        afficherImage();
+        locationMessage.textContent =
+          "D'accord. La localisation reste facultative.";
+
+        showImage();
 
       }
     );
 
 
-    function afficherImage() {
+    /* =========================
+       IMAGE
+    ========================= */
+
+    function showImage() {
 
       /*
-        L'image sera ajoutée ici plus tard.
-        Pour l'instant, l'emplacement reste vide.
+        L'image réelle sera ajoutée ici
+        lorsque tu me donneras le fichier.
+
+        Pour le moment, rien n'est affiché.
       */
 
-      imageProtegee.style.display =
+      protectedImage.style.display =
         "none";
 
     }
-
-
-    traiterLienConnexion();
 
   </script>
 
