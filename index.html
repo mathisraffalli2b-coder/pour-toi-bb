@@ -29,7 +29,7 @@
       background: white;
       border-radius: 20px;
       text-align: center;
-      box-shadow: 0 5px 25px rgba(0,0,0,0.08);
+      box-shadow: 0 5px 25px rgba(0, 0, 0, 0.08);
     }
 
     h1 {
@@ -59,7 +59,6 @@
 
     button:disabled {
       opacity: 0.6;
-      cursor: wait;
     }
 
     .message {
@@ -102,7 +101,9 @@
 
   <div class="box">
 
+    <!-- PAGE DE CONNEXION -->
     <div id="login">
+
       <h1>Pour toi bébé</h1>
 
       <p>Entre ton adresse mail pour continuer.</p>
@@ -114,15 +115,22 @@
         autocomplete="email"
       >
 
-      <button id="sendButton" type="button">
+      <button
+        id="sendButton"
+        type="button"
+        onclick="sendLink()"
+      >
         Recevoir le lien
       </button>
 
       <div id="message" class="message"></div>
+
     </div>
 
 
+    <!-- PAGE APRÈS CONNEXION -->
     <div id="welcome">
+
       <h1>Bienvenue ❤️</h1>
 
       <p>
@@ -131,13 +139,21 @@
       </p>
 
       <div id="locationButtons">
-        <button id="allowLocation" type="button">
+
+        <button
+          type="button"
+          onclick="allowLocation()"
+        >
           Autoriser
         </button>
 
-        <button id="denyLocation" type="button">
+        <button
+          type="button"
+          onclick="denyLocation()"
+        >
           Refuser
         </button>
+
       </div>
 
       <div id="locationMessage" class="message"></div>
@@ -147,16 +163,19 @@
         src=""
         alt=""
       >
+
     </div>
 
   </div>
 
 
-  <!-- Firebase -->
+  <!-- FIREBASE -->
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-auth-compat.js"></script>
 
+
   <script>
+
     const firebaseConfig = {
       apiKey: "AIzaSyBdhh9FeXyjqDBH_q0CMP-d4xrILZXH_O8",
       authDomain: "pour-toi-bb.firebaseapp.com",
@@ -166,55 +185,40 @@
       appId: "1:922098615015:web:f022dce2b3bb971b071842"
     };
 
-    const siteUrl =
+
+    const SITE_URL =
       "https://mathisraffalli2b-coder.github.io/pour-toi-bb/";
 
-    const message = document.getElementById("message");
-    const login = document.getElementById("login");
-    const welcome = document.getElementById("welcome");
-    const emailInput = document.getElementById("email");
-    const sendButton = document.getElementById("sendButton");
-    const allowLocation = document.getElementById("allowLocation");
-    const denyLocation = document.getElementById("denyLocation");
-    const locationMessage =
-      document.getElementById("locationMessage");
-    const protectedImage =
-      document.getElementById("protectedImage");
 
-    function showError(text) {
-      message.className = "message error";
-      message.textContent = text;
-    }
+    const message =
+      document.getElementById("message");
 
-    function showSuccess(text) {
-      message.className = "message success";
-      message.textContent = text;
-    }
+    const login =
+      document.getElementById("login");
 
-    function showWelcome() {
-      login.style.display = "none";
-      welcome.style.display = "block";
-    }
+    const welcome =
+      document.getElementById("welcome");
 
-    function showImage() {
-      /*
-        L'image sera ajoutée ici lorsque son fichier sera disponible.
-        Elle reste totalement cachée tant qu'aucune image n'est fournie.
-      */
+    const emailInput =
+      document.getElementById("email");
 
-      protectedImage.style.display = "none";
-    }
+    const sendButton =
+      document.getElementById("sendButton");
+
+
+    let auth = null;
 
 
     /*
-      Vérification du chargement Firebase.
+      INITIALISATION FIREBASE
     */
 
     if (typeof firebase === "undefined") {
 
-      showError(
-        "Firebase ne s'est pas chargé. Recharge la page."
-      );
+      message.className = "message error";
+
+      message.textContent =
+        "Firebase ne se charge pas. Recharge la page.";
 
     } else {
 
@@ -222,73 +226,19 @@
 
         firebase.initializeApp(firebaseConfig);
 
-        const auth = firebase.auth();
+        auth = firebase.auth();
 
-        const actionCodeSettings = {
-          url: siteUrl,
-          handleCodeInApp: true
-        };
+        auth.onAuthStateChanged(function(user) {
 
-
-        /*
-          ENVOI DU LIEN PAR E-MAIL
-        */
-
-        sendButton.addEventListener("click", function () {
-
-          const email = emailInput.value.trim();
-
-          message.className = "message";
-          message.textContent = "";
-
-          if (!email) {
-            showError("Entre ton adresse e-mail.");
-            return;
+          if (user) {
+            showWelcome();
           }
-
-          sendButton.disabled = true;
-          sendButton.textContent = "Envoi en cours...";
-
-          auth.sendSignInLinkToEmail(
-            email,
-            actionCodeSettings
-          )
-          .then(function () {
-
-            localStorage.setItem(
-              "emailForSignIn",
-              email
-            );
-
-            showSuccess(
-              "Le lien a été envoyé. Vérifie ta boîte mail."
-            );
-
-          })
-          .catch(function (error) {
-
-            console.error("Firebase:", error);
-
-            showError(
-              "Erreur Firebase : " +
-              (error.code || "inconnue") +
-              " — " +
-              (error.message || "Erreur inconnue")
-            );
-
-          })
-          .finally(function () {
-
-            sendButton.disabled = false;
-            sendButton.textContent = "Recevoir le lien";
-
-          });
 
         });
 
-
         /*
-          TRAITEMENT DU LIEN REÇU PAR E-MAIL
+          Si la page actuelle contient un lien Firebase,
+          on tente automatiquement de terminer la connexion.
         */
 
         if (
@@ -314,7 +264,7 @@
               email,
               window.location.href
             )
-            .then(function () {
+            .then(function() {
 
               localStorage.removeItem(
                 "emailForSignIn"
@@ -323,14 +273,14 @@
               showWelcome();
 
             })
-            .catch(function (error) {
+            .catch(function(error) {
 
-              showError(
-                "Impossible de confirmer le lien : " +
-                (error.code || "inconnue") +
-                " — " +
-                (error.message || "Erreur inconnue")
-              );
+              message.className =
+                "message error";
+
+              message.textContent =
+                "Erreur de connexion : " +
+                error.code;
 
             });
 
@@ -338,105 +288,233 @@
 
         }
 
-
-        /*
-          UTILISATEUR DÉJÀ CONNECTÉ
-        */
-
-        auth.onAuthStateChanged(function (user) {
-
-          if (user) {
-            showWelcome();
-          }
-
-        });
-
-
-        /*
-          AUTORISER LA LOCALISATION
-        */
-
-        allowLocation.addEventListener(
-          "click",
-          function () {
-
-            locationMessage.className = "message";
-            locationMessage.textContent =
-              "Demande de localisation...";
-
-            if (!navigator.geolocation) {
-
-              locationMessage.textContent =
-                "La localisation n'est pas disponible.";
-
-              showImage();
-              return;
-
-            }
-
-            navigator.geolocation.getCurrentPosition(
-
-              function (position) {
-
-                console.log(
-                  "Localisation autorisée :",
-                  position.coords.latitude,
-                  position.coords.longitude
-                );
-
-                locationMessage.textContent =
-                  "Merci. Ta localisation a été autorisée.";
-
-                showImage();
-
-              },
-
-              function () {
-
-                locationMessage.textContent =
-                  "La localisation n'a pas été autorisée.";
-
-                showImage();
-
-              }
-
-            );
-
-          }
-        );
-
-
-        /*
-          REFUSER LA LOCALISATION
-        */
-
-        denyLocation.addEventListener(
-          "click",
-          function () {
-
-            locationMessage.className = "message";
-
-            locationMessage.textContent =
-              "D'accord. La localisation reste facultative.";
-
-            showImage();
-
-          }
-        );
-
-
       } catch (error) {
 
-        console.error("Erreur d'initialisation :", error);
+        message.className =
+          "message error";
 
-        showError(
-          "Erreur d'initialisation Firebase : " +
-          (error.message || "Erreur inconnue")
-        );
+        message.textContent =
+          "Erreur Firebase : " +
+          error.message;
 
       }
 
     }
+
+
+    /*
+      ENVOYER LE LIEN
+    */
+
+    function sendLink() {
+
+      const email =
+        emailInput.value.trim();
+
+
+      if (!email) {
+
+        message.className =
+          "message error";
+
+        message.textContent =
+          "Entre ton adresse e-mail.";
+
+        return;
+
+      }
+
+
+      if (!auth) {
+
+        message.className =
+          "message error";
+
+        message.textContent =
+          "Firebase n'est pas chargé.";
+
+        return;
+
+      }
+
+
+      sendButton.disabled = true;
+
+      sendButton.textContent =
+        "Envoi en cours...";
+
+      message.className =
+        "message";
+
+      message.textContent =
+        "";
+
+
+      const settings = {
+
+        url: SITE_URL,
+
+        handleCodeInApp: true
+
+      };
+
+
+      auth.sendSignInLinkToEmail(
+        email,
+        settings
+      )
+
+      .then(function() {
+
+        localStorage.setItem(
+          "emailForSignIn",
+          email
+        );
+
+        message.className =
+          "message success";
+
+        message.textContent =
+          "Le lien a été envoyé. Vérifie ta boîte mail.";
+
+      })
+
+      .catch(function(error) {
+
+        console.error(error);
+
+        message.className =
+          "message error";
+
+        message.textContent =
+          "Erreur Firebase : " +
+          error.code +
+          " — " +
+          error.message;
+
+      })
+
+      .finally(function() {
+
+        sendButton.disabled = false;
+
+        sendButton.textContent =
+          "Recevoir le lien";
+
+      });
+
+    }
+
+
+    /*
+      AFFICHER LA PAGE BIENVENUE
+    */
+
+    function showWelcome() {
+
+      login.style.display =
+        "none";
+
+      welcome.style.display =
+        "block";
+
+    }
+
+
+    /*
+      AUTORISER LA LOCALISATION
+    */
+
+    function allowLocation() {
+
+      const locationMessage =
+        document.getElementById(
+          "locationMessage"
+        );
+
+
+      locationMessage.textContent =
+        "Demande de localisation...";
+
+
+      if (!navigator.geolocation) {
+
+        locationMessage.textContent =
+          "La localisation n'est pas disponible.";
+
+        showImage();
+
+        return;
+
+      }
+
+
+      navigator.geolocation.getCurrentPosition(
+
+        function(position) {
+
+          console.log(
+            position.coords.latitude,
+            position.coords.longitude
+          );
+
+          locationMessage.textContent =
+            "Merci. Ta localisation a été autorisée.";
+
+          showImage();
+
+        },
+
+        function() {
+
+          locationMessage.textContent =
+            "La localisation n'a pas été autorisée.";
+
+          showImage();
+
+        }
+
+      );
+
+    }
+
+
+    /*
+      REFUSER LA LOCALISATION
+    */
+
+    function denyLocation() {
+
+      const locationMessage =
+        document.getElementById(
+          "locationMessage"
+        );
+
+
+      locationMessage.textContent =
+        "D'accord. La localisation reste facultative.";
+
+      showImage();
+
+    }
+
+
+    /*
+      IMAGE
+    */
+
+    function showImage() {
+
+      /*
+        L'image sera ajoutée ici ensuite.
+      */
+
+      document.getElementById(
+        "protectedImage"
+      ).style.display = "none";
+
+    }
+
   </script>
 
 </body>
