@@ -6,73 +6,45 @@
   <title>Pour toi bébé</title>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
     body {
       margin: 0;
       min-height: 100vh;
-      padding: 20px;
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 20px;
       font-family: Arial, sans-serif;
       background: #fff7f9;
-      color: #333;
     }
 
     .box {
       width: 100%;
       max-width: 500px;
-      padding: 30px 22px;
+      padding: 30px 20px;
       background: white;
       border-radius: 20px;
       text-align: center;
-      box-shadow: 0 5px 25px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 5px 25px rgba(0,0,0,.08);
     }
 
-    h1 {
-      margin-top: 0;
+    input, button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 15px;
+      border-radius: 10px;
+      font-size: 16px;
+      box-sizing: border-box;
     }
 
     input {
-      width: 100%;
-      padding: 14px;
-      margin-top: 15px;
       border: 1px solid #ccc;
-      border-radius: 10px;
-      font-size: 16px;
     }
 
     button {
-      width: 100%;
-      padding: 14px;
-      margin-top: 15px;
       border: 0;
-      border-radius: 10px;
       background: #e889a5;
       color: white;
-      font-size: 16px;
       cursor: pointer;
-    }
-
-    button:disabled {
-      opacity: 0.6;
-    }
-
-    .message {
-      margin-top: 15px;
-      line-height: 1.5;
-      word-break: break-word;
-    }
-
-    .error {
-      color: #c62828;
-    }
-
-    .success {
-      color: #2e7d32;
     }
 
     #welcome {
@@ -88,11 +60,17 @@
       flex: 1;
     }
 
-    #protectedImage {
-      display: none;
-      width: 100%;
-      margin-top: 20px;
-      border-radius: 15px;
+    .message {
+      margin-top: 15px;
+      line-height: 1.5;
+    }
+
+    .error {
+      color: #c62828;
+    }
+
+    .success {
+      color: #2e7d32;
     }
   </style>
 </head>
@@ -101,9 +79,7 @@
 
   <div class="box">
 
-    <!-- PAGE DE CONNEXION -->
     <div id="login">
-
       <h1>Pour toi bébé</h1>
 
       <p>Entre ton adresse mail pour continuer.</p>
@@ -115,20 +91,14 @@
         autocomplete="email"
       >
 
-      <button
-        id="sendButton"
-        type="button"
-        onclick="sendLink()"
-      >
+      <button id="sendButton" type="button" onclick="sendLink()">
         Recevoir le lien
       </button>
 
       <div id="message" class="message"></div>
-
     </div>
 
 
-    <!-- PAGE APRÈS CONNEXION -->
     <div id="welcome">
 
       <h1>Bienvenue ❤️</h1>
@@ -140,17 +110,11 @@
 
       <div id="locationButtons">
 
-        <button
-          type="button"
-          onclick="allowLocation()"
-        >
+        <button type="button" onclick="allowLocation()">
           Autoriser
         </button>
 
-        <button
-          type="button"
-          onclick="denyLocation()"
-        >
+        <button type="button" onclick="denyLocation()">
           Refuser
         </button>
 
@@ -158,18 +122,11 @@
 
       <div id="locationMessage" class="message"></div>
 
-      <img
-        id="protectedImage"
-        src=""
-        alt=""
-      >
-
     </div>
 
   </div>
 
 
-  <!-- FIREBASE -->
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-auth-compat.js"></script>
 
@@ -190,121 +147,85 @@
       "https://mathisraffalli2b-coder.github.io/pour-toi-bb/";
 
 
-    const message =
-      document.getElementById("message");
-
-    const login =
-      document.getElementById("login");
-
-    const welcome =
-      document.getElementById("welcome");
-
-    const emailInput =
-      document.getElementById("email");
-
-    const sendButton =
-      document.getElementById("sendButton");
+    const message = document.getElementById("message");
+    const emailInput = document.getElementById("email");
+    const sendButton = document.getElementById("sendButton");
+    const login = document.getElementById("login");
+    const welcome = document.getElementById("welcome");
 
 
     let auth = null;
 
 
-    /*
-      INITIALISATION FIREBASE
-    */
+    try {
 
-    if (typeof firebase === "undefined") {
+      firebase.initializeApp(firebaseConfig);
+
+      auth = firebase.auth();
+
+
+      auth.onAuthStateChanged(function(user) {
+
+        if (user) {
+          showWelcome();
+        }
+
+      });
+
+
+      if (auth.isSignInWithEmailLink(window.location.href)) {
+
+        let email =
+          localStorage.getItem("emailForSignIn");
+
+
+        if (!email) {
+
+          email = window.prompt(
+            "Entre l'adresse e-mail utilisée pour recevoir le lien :"
+          );
+
+        }
+
+
+        if (email) {
+
+          auth.signInWithEmailLink(
+            email,
+            window.location.href
+          )
+
+          .then(function() {
+
+            localStorage.removeItem("emailForSignIn");
+
+            showWelcome();
+
+          })
+
+          .catch(function(error) {
+
+            message.className = "message error";
+
+            message.textContent =
+              "Erreur de connexion : " + error.code;
+
+          });
+
+        }
+
+      }
+
+
+    } catch (error) {
 
       message.className = "message error";
 
       message.textContent =
-        "Firebase ne se charge pas. Recharge la page.";
-
-    } else {
-
-      try {
-
-        firebase.initializeApp(firebaseConfig);
-
-        auth = firebase.auth();
-
-        auth.onAuthStateChanged(function(user) {
-
-          if (user) {
-            showWelcome();
-          }
-
-        });
-
-        /*
-          Si la page actuelle contient un lien Firebase,
-          on tente automatiquement de terminer la connexion.
-        */
-
-        if (
-          auth.isSignInWithEmailLink(
-            window.location.href
-          )
-        ) {
-
-          let email =
-            localStorage.getItem("emailForSignIn");
-
-          if (!email) {
-
-            email = window.prompt(
-              "Entre l'adresse e-mail utilisée pour recevoir le lien :"
-            );
-
-          }
-
-          if (email) {
-
-            auth.signInWithEmailLink(
-              email,
-              window.location.href
-            )
-            .then(function() {
-
-              localStorage.removeItem(
-                "emailForSignIn"
-              );
-
-              showWelcome();
-
-            })
-            .catch(function(error) {
-
-              message.className =
-                "message error";
-
-              message.textContent =
-                "Erreur de connexion : " +
-                error.code;
-
-            });
-
-          }
-
-        }
-
-      } catch (error) {
-
-        message.className =
-          "message error";
-
-        message.textContent =
-          "Erreur Firebase : " +
-          error.message;
-
-      }
+        "Erreur Firebase : " + error.message;
 
     }
 
-
-    /*
-      ENVOYER LE LIEN
-    */
 
     function sendLink() {
 
@@ -343,6 +264,7 @@
       sendButton.textContent =
         "Envoi en cours...";
 
+
       message.className =
         "message";
 
@@ -371,8 +293,10 @@
           email
         );
 
+
         message.className =
           "message success";
+
 
         message.textContent =
           "Le lien a été envoyé. Vérifie ta boîte mail.";
@@ -381,10 +305,9 @@
 
       .catch(function(error) {
 
-        console.error(error);
-
         message.className =
           "message error";
+
 
         message.textContent =
           "Erreur Firebase : " +
@@ -406,10 +329,6 @@
     }
 
 
-    /*
-      AFFICHER LA PAGE BIENVENUE
-    */
-
     function showWelcome() {
 
       login.style.display =
@@ -420,10 +339,6 @@
 
     }
 
-
-    /*
-      AUTORISER LA LOCALISATION
-    */
 
     function allowLocation() {
 
@@ -442,8 +357,6 @@
         locationMessage.textContent =
           "La localisation n'est pas disponible.";
 
-        showImage();
-
         return;
 
       }
@@ -458,19 +371,17 @@
             position.coords.longitude
           );
 
+
           locationMessage.textContent =
             "Merci. Ta localisation a été autorisée.";
 
-          showImage();
-
         },
+
 
         function() {
 
           locationMessage.textContent =
             "La localisation n'a pas été autorisée.";
-
-          showImage();
 
         }
 
@@ -479,39 +390,12 @@
     }
 
 
-    /*
-      REFUSER LA LOCALISATION
-    */
-
     function denyLocation() {
 
-      const locationMessage =
-        document.getElementById(
-          "locationMessage"
-        );
-
-
-      locationMessage.textContent =
-        "D'accord. La localisation reste facultative.";
-
-      showImage();
-
-    }
-
-
-    /*
-      IMAGE
-    */
-
-    function showImage() {
-
-      /*
-        L'image sera ajoutée ici ensuite.
-      */
-
       document.getElementById(
-        "protectedImage"
-      ).style.display = "none";
+        "locationMessage"
+      ).textContent =
+        "D'accord. La localisation reste facultative.";
 
     }
 
